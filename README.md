@@ -1,0 +1,2 @@
+# compstat
+Computational Statistics exercises
