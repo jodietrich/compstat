@@ -94,16 +94,27 @@ crossval <- function(X, Y, k.folds=10){
     folds.test.mse[[i]]=mean((predTest-Ytest)^2)
   }
   MSEEstimate <- mean(folds.test.mse)
-  return(MSEEstimate)
+  VarEstimate <- (1/k.folds)*var(folds.test.mse)
+  CV.results <- list(MSEEstimate, VarEstimate)
+  return(CV.results)
+}
+
+crossval.mean <- function(X, Y, k.folds=10){
+  return(crossval(X, Y, k.folds = k.folds)[[1]])
+}
+
+crossval.var <- function(X, Y, k.folds=10){
+  return(crossval(X, Y, k.folds = k.folds)[[2]])
 }
 
 RepeatedCrossVal<-function(X,Y, k.folds=10){
-  MSEEstimate <- replicate(10, crossval(X,Y, k.folds = k.folds))
+  MSEEstimate <- replicate(10, crossval.mean(X,Y, k.folds = k.folds))
   return(mean(MSEEstimate))
 }
 
 LOOCV <- function(X, Y){
-  MSEEstimate <- crossval(X,Y,length(Y))
+  LOOCV.results <- crossval.mean(X,Y,length(Y))
+  return(LOOCV.results)
 }
 
 # 1g evaluate different estimates
@@ -128,3 +139,15 @@ Estimates <- cbind(EstimatesVS,EstimatesRVS,EstimatesCV,EstimatesRCV,EstimatesLO
 boxplot(Estimates, names=c("VS","RVS","CV", "RCV", "LOOCV"))
 abline(h=sim.test.mse, lty=2)
 
+# 1h estimate bias and variance of estimators
+mean.Estimates <- apply(X = Estimates, MARGIN = 2, FUN = mean)
+Biases <- mean.Estimates - sim.test.mse
+Variances <- apply(X = Estimates, MARGIN = 2, FUN = var)
+
+# 1j check cv variance estimate
+CV.Variance.estimates <- EvaluateOnSimulation(estimationFunction = crossval.var, iterations = 1000)
+mean.CV.Variance.estimate <- mean(CV.Variance.estimates)
+mean.CV.Variance.estimate - Variances["EstimatesCV"]
+hist(CV.Variance.estimates)
+abline(v=mean.CV.Variance.estimate, lty=2, col="red")
+abline(v=Variances["EstimatesCV"], lty=2, col="blue")
